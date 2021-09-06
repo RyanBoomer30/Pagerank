@@ -57,7 +57,24 @@ def transition_model(corpus, page, damping_factor):
     linked to by `page`. With probability `1 - damping_factor`, choose
     a link at random chosen from all pages in the corpus.
     """
-    raise NotImplementedError
+    result = dict()
+
+    for p in corpus:
+        # Set up initual randomizer value
+        initual = (1-damping_factor) / len(corpus)
+
+        # Add initualize value to chances of connected node
+        for i in corpus[page]:
+            if p == i:
+                initual += (damping_factor / len(corpus[page]))
+
+        # Add initualize value to a randomizer value if no connected node
+        if len(corpus[page]) == 0:
+            initual += damping_factor / len(corpus)
+        
+        result[p] = initual
+    
+    return result
 
 
 def sample_pagerank(corpus, damping_factor, n):
@@ -69,8 +86,33 @@ def sample_pagerank(corpus, damping_factor, n):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+    # Initualize all page as 0
+    result = dict()
+    for i in corpus:
+        result[i] = 0
 
+    # Choose a random first page
+    currentPage_name = list(corpus.keys())
+    currentPage = random.choice(currentPage_name)
+
+    for i in range(n):
+
+        result[currentPage] += 1
+
+        # Get output from the current move
+        moves = transition_model(corpus, currentPage, damping_factor)
+
+        # Choose a random move based on probability of moves
+        moves_name = list(moves.keys())
+        moves_chances = list(moves.values())
+        currentPage = random.choices(moves_name, weights=moves_chances, k=1)
+        currentPage = currentPage[0]
+
+    for i in corpus:
+        result[i] = result[i] / n
+
+    return result
+        
 
 def iterate_pagerank(corpus, damping_factor):
     """
@@ -81,7 +123,39 @@ def iterate_pagerank(corpus, damping_factor):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+    # Initualize all page as 1 / N
+    previous_Iteration = dict()
+    for i in corpus:
+        previous_Iteration[i] = 1 / len(corpus)
+
+    while True:
+        check = 0
+        
+        for i in corpus:
+            current_Iteration = (1-damping_factor) / len(corpus)
+            sum_Iteration = 0
+
+            # Sum up all the nodes that link to the current page
+            for p in corpus:
+                if i in corpus[p]:
+                    sum_Iteration += previous_Iteration[p] / len(corpus[p])
+
+            current_Iteration += damping_factor * sum_Iteration
+
+            # Check if a Pagerank value changes by more than 0.001
+            if abs(previous_Iteration[i] - current_Iteration <= 0.001):
+                check +=1
+
+            previous_Iteration[i] = current_Iteration
+        
+        # Stop the loop if all Pagerank values changes by more than 0.001
+        if check == len(corpus):
+            # Normalize the value to get a perfect sum of 1 (Chris Sorenson's idea)
+            normalizer = sum(previous_Iteration.values())
+            for i in previous_Iteration:
+                previous_Iteration[i] /= normalizer
+            print(sum(previous_Iteration.values()))
+            return previous_Iteration
 
 
 if __name__ == "__main__":
